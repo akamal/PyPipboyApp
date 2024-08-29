@@ -41,5 +41,47 @@
 		"nw": [-58, 454],
 		"ne": [3852, 454],
 		"sw": [-58, 4350]
-	}
+	}, "folon-london-2k": {
+		"label": "FOLON London 2k",
+		"colorable": true,
+		"file": "folon/londonworld.png",
+		"nw": [69, 69],
+		"ne": [1979, 69],
+		"sw": [69, 1979]
+	}, "folon-hackney-2k": {
+		"label": "FOLON Hackney 2k",
+		"colorable": true,
+		"file": "folon/hackneyworld.png",
+		"nw": [69, 69],
+		"ne": [1979, 69],
+		"sw": [69, 1979]
+	}, "folon-Bank Of England-2k": {
+		"label": "FOLON Bank Of England 2k",
+		"colorable": true,
+		"file": "folon/BankOfEnglandworld.png",
+		"nw": [69, 69],
+		"ne": [1979, 69],
+		"sw": [69, 1979]
+	}, "folon-Camden-2k": {
+		"label": "FOLON Camden 2k",
+		"colorable": true,
+		"file": "folon/Camdenworld.png",
+		"nw": [69, 69],
+		"ne": [1979, 69],
+		"sw": [69, 1979]
+	}, "folon-Islington-2k": {
+		"label": "FOLON Islington 2k",
+		"colorable": true,
+		"file": "folon/Islingtonworld.png",
+		"nw": [69, 69],
+		"ne": [1979, 69],
+		"sw": [69, 1979]
+	}, "folon-Westminster-2k": {
+		"label": "FOLON Westminster 2k",
+		"colorable": true,
+		"file": "folon/Westminsterworld.png",
+		"nw": [69, 69],
+		"ne": [1979, 69],
+		"sw": [69, 1979]
+	}	
 }

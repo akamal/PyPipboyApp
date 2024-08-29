@@ -333,9 +333,9 @@ class LocationMarker(PipValueMarkerBase):
         if not self.locType < 0:
             filepath = 'mapmarkerloctype_' + str(self.locType)
             if self.discovered:
-                self.imageFilePath = os.path.join('res', filepath + '_d.svg')
+                self.imageFilePath = os.path.join('res',self.widget.iconSubDir, filepath + '_d.svg')
             else:
-                self.imageFilePath = os.path.join('res', filepath + '_u.svg')
+                self.imageFilePath = os.path.join('res',self.widget.iconSubDir, filepath + '_u.svg')
             p = self.imageFactory.getPixmap(self.imageFilePath, size=self.size, color=self.color)
             if not p:
                 self.noTypePixmapFound = True
@@ -857,12 +857,34 @@ class GlobalMapWidget(widgets.WidgetBase):
     MAPZOOM_SCALE_MAX = 4.0
     MAPZOOM_SCALE_MIN = 0.05
     
+	#commonweath
     MAP_NWX = -135168
     MAP_NWY = 102400
     MAP_NEX = 114688
     MAP_NEY = 102400
     MAP_SWX = -135168
     MAP_SWY = -147456
+
+    ##folon london
+    #MAP_NWX = -122880
+    #MAP_NWY = 122880
+    #MAP_NEX = 122880
+    #MAP_NEY = 122880
+    #MAP_SWX = -122880
+    #MAP_SWY = -122880
+    folonWorldSpaces = [
+        'The Glades',
+        'Hackney',
+        'Westminster',
+        'Islington',
+        'London',
+        'Camden',
+        'Imperial War Museum',
+        'St Paul\'s Cathedral',
+        'Bank of England',
+        'The Dump',
+        'Covent Garden',
+        'Bromley Pindar'];
   
     def __init__(self, handle, controller, parent):
         super().__init__('Global Map', parent)
@@ -1051,14 +1073,23 @@ class GlobalMapWidget(widgets.WidgetBase):
         self._signalPipWorldQuestsUpdated.connect(self._slotPipWorldQuestsUpdated)
         self._signalPipWorldLocationsUpdated.connect(self._slotPipWorldLocationsUpdated)
         self.datamanager.registerRootObjectListener(self._onRootObjectEvent)
+		
+        self.pipWorldSpace = 'Commonwealth'
+        self.iconSubDir = '';
         
     def getMenuCategory(self):
         return 'Map && Locations'
 
-    def _loadCollectablesDefinitionsFromJson(self):
+    def _loadCollectablesDefinitionsFromJson(self, subgame=''):
         self._logger.info('Loading CollectableMarkers from JSON')
-        inputFile = open(os.path.join('widgets', 'shared', 'res', 'collectables-processed.json'))
+        
+        collectablesDefFilename = 'collectables-processed.json'
+        if subgame == 'folon':
+            collectablesDefFilename = 'collectables-processed-folon.json'
+        
+        inputFile = open(os.path.join('widgets', 'shared', 'res', collectablesDefFilename))
         collectables = json.load(inputFile, object_pairs_hook=OrderedDict)
+        self._logger.info(inputFile)
 
         for k in collectables.keys():
             self.collectableNearSoundEffects[k] = QtMultimedia.QSoundEffect()
@@ -1116,6 +1147,21 @@ class GlobalMapWidget(widgets.WidgetBase):
     def _onPipMapReset(self, caller, value, pathObjs):
         self.pipMapWorldObject = self.pipMapObject.child('World')
         if self.pipMapWorldObject:
+            currWorldspace = self.pipMapObject.child('CurrWorldspace').value()
+            self._logger.info('akak ' + str(currWorldspace))
+			#attempt to switch map texture here?
+			#or add a listener for CurrWorldspace and switch on change?
+            worldExtents = self.pipMapWorldObject.child('Extents')
+            if worldExtents:
+                self.MAP_NWX =  worldExtents.child('NWX').value()
+                self.MAP_NWY =  worldExtents.child('NWY').value()
+                self.MAP_NEX =  worldExtents.child('NEX').value()
+                self.MAP_NEY =  worldExtents.child('NEY').value()
+                self.MAP_SWX =  worldExtents.child('SWX').value()
+                self.MAP_SWY =  worldExtents.child('SWY').value()
+				
+
+				
             self.mapCoords.init( 
                     self.MAP_NWX, self.MAP_NWY, 
                     self.MAP_NEX,  self.MAP_NEY, 
@@ -1303,6 +1349,52 @@ class GlobalMapWidget(widgets.WidgetBase):
 
     @QtCore.pyqtSlot() 
     def _slotPipWorldLocationsUpdated(self):
+        currWorldspace = str(self.pipMapObject.child('CurrWorldspace').value());
+        prevWorldspace = self.pipWorldSpace;
+        
+        if self.pipWorldSpace != currWorldspace:
+            self._logger.debug('akak in _onPipWorldLocationsUpdated');
+            self._logger.debug('akak worldspace was ' + str(self.pipWorldSpace));
+            
+            self.pipWorldSpace = currWorldspace;
+            self._logger.debug('akak worldspace is ' + str(self.pipWorldSpace));
+
+            if self.pipWorldSpace in self.folonWorldSpaces:
+                self.iconSubDir = 'folon';
+            else:
+                self.iconSubDir = '';
+                
+                
+            if (currWorldspace in self.folonWorldSpaces) and not (prevWorldspace in self.folonWorldSpaces):
+                self.collectableDefs = self._loadCollectablesDefinitionsFromJson("folon");
+                self._addCollectablesControls(self.collectableDefs)
+                
+            elif (prevWorldspace in self.folonWorldSpaces) and not (currWorldspace in self.folonWorldSpaces):
+                self.collectableDefs = self._loadCollectablesDefinitionsFromJson();
+                self._addCollectablesControls(self.collectableDefs)
+                
+            worldExtents = self.pipMapWorldObject.child('Extents')
+            if worldExtents:
+                self.MAP_NWX =  worldExtents.child('NWX').value()
+                self.MAP_NWY =  worldExtents.child('NWY').value()
+                self.MAP_NEX =  worldExtents.child('NEX').value()
+                self.MAP_NEY =  worldExtents.child('NEY').value()
+                self.MAP_SWX =  worldExtents.child('SWX').value()
+                self.MAP_SWY =  worldExtents.child('SWY').value()
+
+		
+            ###mapfile = self.mapFiles[self.mapFileComboItems[index]]
+		
+            for i,v in enumerate(self.mapFileComboItems):
+                self._logger.debug('akak i: ' + str(i) + ' = ' + str(v) + ', ' + self.mapFiles[self.mapFileComboItems[i]]['file'])
+                if str(self.pipWorldSpace).lower() in str(v).lower():
+                    self._logger.info('akak choosing mapfile ' + str(self.mapFiles[self.mapFileComboItems[i]]['file']))
+                    self.widget.mapFileComboBox.setCurrentIndex(i)
+                    #self._slotMapFileComboTriggered(i)
+                    break;
+                else:
+                    self._logger.debug(str(self.pipWorldSpace) + ' not in ' + str(v))
+
         self._createLocationMarkers()
         self._createPOIMarkers()
         self._createCollectablesMarkers(self.collectableDefs)
@@ -1327,24 +1419,30 @@ class GlobalMapWidget(widgets.WidgetBase):
             newDict = dict()
 
             for collectable in catData.get('items'):
-                if collectable.get('instanceid', None) in self.collectableLocationMarkers[catKey].keys() and not reset:
+                #akak disable marker reuse to see it stop crashes after world transitions
+                if 1==2 and collectable.get('instanceid', None) in self.collectableLocationMarkers[catKey].keys() and not reset:
                     marker = self.collectableLocationMarkers[catKey][collectable.get('instanceid', None)]
                     self._logger.info ('reused marker '+ str(collectable.get('instanceid', None)))
                     newDict[collectable.get('instanceid', None)] = marker
                     del self.collectableLocationMarkers[catKey][collectable.get('instanceid', None)]
                 else:
-                    cmx = collectable.get('commonwealthx', None)
-                    cmy = collectable.get('commonwealthy', None)
-                    if cmx is not None and cmy is not None:
-                        marker = CollectableMarker(collectable.get('instanceid', None), self, self.controller.sharedResImageFactory, iconcolor, self.mapMarkerSize, icon=catData.get('icon', 'Starfilled.svg'))
-                        marker.setLabel(textwrap.fill(collectable.get('name', ''), 30) + '\n' + textwrap.fill(collectable.get('description', ''), 30))
-                        marker.itemFormID = collectable.get('formid')
-                        marker.setMapPos(self.mapCoords.pip2map_x(float(cmx)), self.mapCoords.pip2map_y(float(cmy)))
-                        marker.setZoomLevel(self.mapZoomLevel, 0.0, 0.0, True)
-                        marker.setSavedSettings()
-                        self._connectMarker(marker)
+                    #akak
+					#cmx = collectable.get('commonwealthx', None)
+                    #cmy = collectable.get('commonwealthy', None)
+                    if collectable.get('world', 'Commonwealth') == str(self.pipMapObject.child('CurrWorldspace').value()):
+                        cmx = collectable.get('worldx', None)
+                        cmy = collectable.get('worldy', None)
 
-                        newDict[collectable.get('instanceid', None)] = marker
+                        if cmx is not None and cmy is not None:
+                            marker = CollectableMarker(collectable.get('instanceid', None), self, self.controller.sharedResImageFactory, iconcolor, self.mapMarkerSize, icon=catData.get('icon', 'Starfilled.svg'))
+                            marker.setLabel(textwrap.fill(collectable.get('name', ''), 30) + '\n' + textwrap.fill(collectable.get('description', ''), 30))
+                            marker.itemFormID = collectable.get('formid')
+                            marker.setMapPos(self.mapCoords.pip2map_x(float(cmx)), self.mapCoords.pip2map_y(float(cmy)))
+                            marker.setZoomLevel(self.mapZoomLevel, 0.0, 0.0, True)
+                            marker.setSavedSettings()
+                            self._connectMarker(marker)
+    
+                            newDict[collectable.get('instanceid', None)] = marker
 
             for instanceID, marker in self.collectableLocationMarkers[catKey].items():
                 marker.destroy()
